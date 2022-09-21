@@ -1,3 +1,6 @@
+#script to pull MNIST data and make into csv
+#based off http://rasbt.github.io/mlxtend/user_guide/data/loadlocal_mnist/#example-1-part-2-loading-mnist-into-numpy-arrays
+
 from mlxtend.data import loadlocal_mnist
 import platform
 
