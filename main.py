@@ -9,7 +9,7 @@ import pandas as pd
 from absl import flags
 
 from dataclasses import dataclass, field, InitVar
-from tensorflow.keras import layers, models
+from tensorflow.keras import layers, models, regularizers
 
 # classify MNIST digits with convolutional neural network
 # objective 95.5% accuracy
@@ -38,8 +38,16 @@ class Data:
     test: np.ndarray = field(init=False)
     test_labels: np.ndarray = field(init=False)
 
-    def __post_init__(self):
-        print('hi')
+    def __post_init__(self,rng):
+        self.train = self.itrain.iloc[:50000].values.reshape(-1,28,28,1)
+        self.train_labels = self.itrainlab.iloc[:50000].to_numpy()
+
+        self.val = self.itrain.iloc[50000:].values.reshape(-1,28,28,1)
+        self.val_labels = self.itrainlab.iloc[50000:].to_numpy()
+
+        self.test = self.itest.values.reshape(-1,28,28,1)
+        self.test_labels = self.itestlab.to_numpy()
+
 
     def get_batch(self, rng, batch_size):
         choices = rng.choice(self.index, size = batch_size)
@@ -58,31 +66,29 @@ flags.DEFINE_float("sigma_noise", 0.5, "Standard deviation of noise random varia
 
 
 #feed in x, y, and category as training data, predict boundaries with multilayer perceptron
-class Model(tf.Module):
+def Model():
         #variables to be tuned in inits, the layers that will be made by layer class when we call model in main
-    def __init__(self, model):
-        self.model = models.Sequential()
+    model = models.Sequential()
 
-    @tf.function
-    def __call__(self, x, preds = False):
-     self.model.add(layers.Conv2D(32, (3,3), activation = 'relu', input_shape = (28,28,1)))
-     self.model.add(layers.MaxPooling2D(2,2))
-     self.model.add(layers.Conv2D(64, (3,3), activation = 'relu', input_shape = (32,32,3)))
-     self.model.add(layers.MaxPooling2D(2,2))
-     self.model.add(layers.Conv2D(64, (3,3), activation = 'relu', input_shape = (32,32,3)))
-     self.model.add(layers.MaxPooling2D(2,2))
+    model.add(layers.Conv2D(32, (3,3), activation = 'relu', input_shape = (28,28,1)))
+    model.add(layers.MaxPooling2D(2,2))
+    model.add(layers.Conv2D(64, (3,3), activation = 'relu', input_shape = (32,32,3)))
+    model.add(layers.MaxPooling2D(2,2))
+    model.add(layers.Conv2D(64, (3,3), activation = 'relu', input_shape = (32,32,3)))
+    model.add(layers.MaxPooling2D(2,2))
 
-     #add Dense layers for classification
-     self.model.add(layers.Flatten())
-     self.model.add(layers.Dense(64, activation='relu'))
-     # size 10 output layer for 10 classes
-     self.model.add(layers.Dense(10, activity_regularizer = regularizers.L2(0.01)))
+    #add Dense layers for classification
+    model.add(layers.Flatten())
+    model.add(layers.Dense(64, activation='relu'))
+    # size 10 output layer for 10 classes
+    model.add(layers.Dense(10, activity_regularizer = regularizers.L2(0.01)))
 
      #model has optimzeer and loss function built in now
-     self.model.compile(optimizer='adam',
+    model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
+    return model
 
 def main():
 
@@ -99,15 +105,17 @@ def main():
     images_df = pd.read_csv('./images.csv')
     labels_df = pd.read_csv('./labels.csv')
 
+    print(images_df.shape, labels_df.shape)
     test_images = pd.read_csv('./testimages.csv')
     test_labels = pd.read_csv('./testlabels.csv')
 
     #call Data class to properly shape data
     data = Data(rng = np_rng, itrain = images_df, itrainlab = labels_df, itest = test_images, itestlab = test_labels)
 
+    print(data.train.shape, data.train_labels.shape)
     model = Model()
-    history = model.fit(train_images, train_labels, epochs=10,
-        validation_data=(test_images, test_labels))
+    history = model.fit(data.train, data.train_labels, epochs=10,
+        validation_data=(data.val, data.val_labels))
 
 
 
