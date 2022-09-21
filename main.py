@@ -12,11 +12,8 @@ from dataclasses import dataclass, field, InitVar
 from tensorflow.keras import layers, models, regularizers
 
 # classify MNIST digits with convolutional neural network
-# objective 95.5% accuracy
+# objective 95.5% test accuracy
 
-#split train data into train and val
-
-#add in val data as test data, must split first
 
 @dataclass
 class Data:
@@ -63,14 +60,14 @@ def Model():
 
     model.add(layers.Conv2D(32, (3,3), activation = 'relu', input_shape = (28,28,1)))
     model.add(layers.MaxPooling2D(2,2))
-    model.add(layers.Conv2D(64, (3,3), activation = 'relu', input_shape = (32,32,3)))
+    model.add(layers.Conv2D(16, (3,3), activation = 'relu'))
     model.add(layers.MaxPooling2D(2,2))
-    model.add(layers.Conv2D(64, (3,3), activation = 'relu', input_shape = (32,32,3)))
+    model.add(layers.Conv2D(16, (3,3), activation = 'relu'))
     model.add(layers.MaxPooling2D(2,2))
 
     #add Dense layers for classification
     model.add(layers.Flatten())
-    model.add(layers.Dense(64, activation='relu'))
+    model.add(layers.Dense(8, activation='relu'))
     # size 10 output layer for 10 classes
     model.add(layers.Dense(10, activity_regularizer = regularizers.L2(0.01)))
 
