@@ -14,6 +14,7 @@ from tensorflow.keras import layers, models, regularizers
 # classify MNIST digits with convolutional neural network
 # objective 95.5% test accuracy
 
+#data recieved using http://rasbt.github.io/mlxtend/user_guide/data/loadlocal_mnist/#example-1-part-2-loading-mnist-into-numpy-arrays
 
 @dataclass
 class Data:
