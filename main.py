@@ -48,14 +48,6 @@ class Data:
         self.test = self.itest.values.reshape(-1,28,28,1)
         self.test_labels = self.itestlab.to_numpy()
 
-
-    def get_batch(self, rng, batch_size):
-        choices = rng.choice(self.index, size = batch_size)
-        return self.x[choices], self.y[choices], self.tclass[choices]
-
-    def get_spirals(self):
-        return self.x1, self.y1, self.x2, self.y2
-
 FLAGS = flags.FLAGS
 flags.DEFINE_integer("num_samples", 50000, "Number of samples in dataset")
 flags.DEFINE_integer("batch_size", 50, "Number of samples in batch")
@@ -65,9 +57,8 @@ flags.DEFINE_integer("random_seed", 31415, "Random seed for reproducible results
 flags.DEFINE_float("sigma_noise", 0.5, "Standard deviation of noise random variable")
 
 
-#feed in x, y, and category as training data, predict boundaries with multilayer perceptron
+#CNN made based off of https://www.tensorflow.org/tutorials/images/cnn
 def Model():
-        #variables to be tuned in inits, the layers that will be made by layer class when we call model in main
     model = models.Sequential()
 
     model.add(layers.Conv2D(32, (3,3), activation = 'relu', input_shape = (28,28,1)))
@@ -83,7 +74,9 @@ def Model():
     # size 10 output layer for 10 classes
     model.add(layers.Dense(10, activity_regularizer = regularizers.L2(0.01)))
 
-     #model has optimzeer and loss function built in now
+    #add dropout layer to prevent overfitting, higher rate means more parameters are dropped out
+    model.add(layers.Dropout(.4))
+    #model has optimzeer and loss function built in now
     model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
@@ -99,13 +92,11 @@ def main():
     seed_sequence = np.random.SeedSequence(FLAGS.random_seed)
     np_seed, tf_seed = seed_sequence.spawn(2) #spawn 2 sequences for 2 threads
     np_rng =np.random.default_rng(np_seed)
-    tf_rng = tf.random.Generator.from_seed(tf_seed.entropy)
 
     #make data into pandas df
     images_df = pd.read_csv('./images.csv')
     labels_df = pd.read_csv('./labels.csv')
 
-    print(images_df.shape, labels_df.shape)
     test_images = pd.read_csv('./testimages.csv')
     test_labels = pd.read_csv('./testlabels.csv')
 
@@ -114,12 +105,22 @@ def main():
 
     print(data.train.shape, data.train_labels.shape)
     model = Model()
+    print(model.summary())
     history = model.fit(data.train, data.train_labels, epochs=10,
         validation_data=(data.val, data.val_labels))
 
+    #PLOTTING
+    plt.plot(history.history['accuracy'], label='accuracy')
+    plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.ylim([0.5, 1])
+    plt.legend(loc='lower right')
+    plt.tight_layout()
+    plt.savefig('./epochaccuracy.pdf')
 
+    test_loss, test_acc = model.evaluate(data.test, data.test_labels, verbose=2)
 
-#PLOTTING
 
 if __name__ == "__main__":
     main()
