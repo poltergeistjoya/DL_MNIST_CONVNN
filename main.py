@@ -80,45 +80,6 @@ flags.DEFINE_float("learning_rate", 0.001, "Learning rate/initial step size")
 flags.DEFINE_integer("random_seed", 31415, "Random seed for reproducible results")
 flags.DEFINE_float("sigma_noise", 0.5, "Standard deviation of noise random variable")
 
-#i attempted to matmul my layers which i made by passing input through activation function and then matmuling, but i kept getting lost in the sauce so i turned to the internet
-
-#make layer class
-#https://www.tensorflow.org/guide/core/mlp_core#multilayer_perceptron_mlp_overview
-#document sent to me by Husam
-
-#must initialize weights properly to prevent activation outputs from becoming too large or small, use xavier init method to do so
-def xavier_init(shape):
-        in_dim, out_dim = shape
-        #in_dim= tf.cast(in_dim, tf.int32)
-        #out_dim = tf.cast(out_dim, tf.int32)
-        xavier_lim = tf.sqrt(6.)/tf.sqrt(tf.cast(in_dim + out_dim, tf.float32))
-        weight_vals =tf.random.uniform(shape=(in_dim, out_dim), minval=-xavier_lim, maxval=xavier_lim, seed =22)
-        return weight_vals
-
-class Layer(tf.Module):
-
-    def __init__(self, out_dim, weight_init = xavier_init, activation = tf.nn.relu):
-        self.out_dim=out_dim
-        self.weight_init = weight_init
-        self.activation = activation
-        self.built = False
-
-    def __call__(self,x):
-        if not self.built:
-            #get input dimension by first input layer
-            self.in_dim = x.shape[1]
-            #get weight and bias using xavier scheme
-            self.w = tf.Variable(xavier_init(shape=(self.in_dim, self.out_dim)))
-            self.b = tf.Variable(tf.zeros(shape=(self.out_dim,)))
-            self.built = True
-            print(x)
-            print(self.w)
-
-        #float64w = tf.cast(self.w, tf.float64)
-        #float64b = tf.cast(self.b, tf.float64)
-        z = x @ self.w + self.b
-        return self.activation(z)
-
 
 #feed in x, y, and category as training data, predict boundaries with multilayer perceptron
 class Model(tf.Module):
@@ -158,17 +119,8 @@ def main():
     np_rng =np.random.default_rng(np_seed)
     tf_rng = tf.random.Generator.from_seed(tf_seed.entropy)
 
-    #Generate data
-
-    data = Data(np_rng, FLAGS.num_samples)
-
-    #call model and feed in x, y, and true category as training data, predict boundaries with multilayer perceptron
-    model = Model([
-        Layer(200),
-        Layer(100),
-        Layer(1, activation=tf.math.sigmoid)])
-
-    optimizer = tf.optimizers.Adam(learning_rate = FLAGS.learning_rate)
+    #call Data class to properly shape data
+    data = Data()
 
     #makes the sexy bar that shows progress of our training
     bar = trange(FLAGS.num_iters)
@@ -194,39 +146,8 @@ def main():
         #bar.set_description(f"Loss @ {i} => {loss.numpy():0.3f}")
         bar.refresh()
 
-    #due to the time constraint and my inability to make my plot work, this plot is heavily baseed on Husam's plotting section
-    #PLOTTING
-    N_points = 100
-    axis = np.linspace(-15,15, 1000).astype(np.float32)
-    x_ax, y_ax = np.meshgrid(axis,axis)
 
-    coords = np.vstack([x_ax.ravel(), y_ax.ravel()]).T
-    y = model(coords, tf_rng)
-    output = tf.squeeze(y)
-
-    plt.figure()
-    num_samples = FLAGS.num_samples
-    plt.plot(data.x[:num_samples//2], data.y[:num_samples//2], "o", color="red")
-    plt.plot(data.x[num_samples//2:], data.y[num_samples//2:], "o", color="blue")
-    plt.legend(["Data 0", "Data 1"])
-    #make boundary point at 0.5 bc aligns with sigmoid output layer
-    plt.contourf(x_ax, y_ax, output.numpy().reshape(1000, 1000), [0, 0.5, 1], colors=["lightcoral", "steelblue"])
-    plt.title("Spiral Data")
-
-    plt.tight_layout()
-    plt.savefig("./spiral.pdf")
-
-
-    #x1,y1,x2,y2 = data.get_spirals()
-    #fig, ax = plt.subplots(1,1, figsize=(15,15), dpi = 200)
-    #ax.set_title("Spirals")
-    #ax.set_xlabel("Spiral Radius")
-    #ax.set_ylabel("Spiral Radius")
-    #ax.set_xlim(-15, 15)
-    #ax.set_ylim(-15, 15)
-    #ax.plot(x1, y1, "o", x2, y2, "o")
-
-   # plt.savefig("./spirals1test.pdf
+#PLOTTING
 
 if __name__ == "__main__":
     main()
